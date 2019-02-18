@@ -6,7 +6,7 @@ from scrapyphantom.items import ScrapyphantomItem
 class KpdSpider(scrapy.Spider):
     name = 'kpd'
     allowed_domains = ['kpd374.com']
-    start_urls = ['https://www.kpd374.com/whmm/index.html']
+    start_urls = ['https://www.kpd374.com/meinvzhubo/kr/']
 
     def parse(self, response):
         videoList = response.css('.panel-list li')
@@ -16,6 +16,8 @@ class KpdSpider(scrapy.Spider):
             item['href'] = videodom.css('a::attr(href)').extract_first()
             item['title'] = videodom.css('a::attr(title)').extract_first()
             item['imgsrc'] = videodom.css('img::attr(src)').extract_first()
+            if item['imgsrc'].find('http') == -1:
+                item['imgsrc'] = response.urljoin(item['imgsrc'])
             video_page = response.urljoin(item['href'])
             request = scrapy.Request(video_page, self.videoParse)
             request.meta['item'] = item
@@ -32,13 +34,10 @@ class KpdSpider(scrapy.Spider):
             iframe_page = response.urljoin(iframesrc)
             item['iframesrc'] = iframe_page
             request = scrapy.Request(iframe_page, self.iframeParse)
+            request.meta['PhantomJS'] = True
             request.meta['item'] = item
             yield request
 
     def iframeParse(self, response):
-        videodom = response.css('video')
         item = response.meta['item']
-        if videodom is not None:
-            item['m3u8'] = response.css('video::attr(src)').extract_first()
-            print(item['m3u8'])
         yield item
